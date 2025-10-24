@@ -1,0 +1,293 @@
+---
+title: "Main Title"
+subtitle: ""
+author: "Jean-Charles Isner"
+date: "`r format(Sys.time(), '%d %B %Y, %H:%M.')`"
+gitlab: "https&colon;&sol;&sol;gitlab&period;com"
+output:
+  rmdadcendo::adcendobook
+editor_options: 
+  chunk_output_type: console
+knit: (function(inputFile, encoding) { rmarkdown::render(inputFile, encoding = encoding, output_file = paste0(substr(inputFile,1,nchar(inputFile)-4),"_",format(Sys.time(),format="%Y%m%d_%H%M"),'.html')) })
+---
+
+```{r gitlab_url, eval=FALSE, include=FALSE}
+# The gitlab url needs to be encoded. knit automatically recognises the link as url and transform the url in the RMarkdown.  
+# bellow, there is a one line code in order to encode the url that you can use and the copy in the RMarkdown headers.  
+# We are working on a more elegant solution if this exists.  
+# textutils needs to be installed.  
+# 
+url <- "https://gitlab.com"
+textutils::HTMLencode(url)
+```
+
+```{r setup, include=FALSE}
+ragg_png <- function(..., res = 192) {
+  ragg::agg_png(..., res = res, units = "in")
+}
+knitr::opts_chunk$set(
+  echo = TRUE,
+  warning = FALSE,
+  message = FALSE,
+  tidy = "styler",
+  dev = "ragg_png",
+  fig.ext = "png"
+)
+```
+
+```{r libraries}
+library(patchwork)
+library(ggpubr)
+library(gt)
+library(broom)
+library(lubridate)
+library(ggsurvfit)
+library(gtsummary)
+library(tidycmprsk)
+library(survival)
+library(survminer)
+library(ggsurvfit)
+library(condsurv)
+library(ggmosaic)
+library(janitor)
+library(shiny)
+library(htmltools)
+library(kableExtra)
+library(ggpubr)
+library(gtools)
+library(haven)
+library(tools)
+library(readxl) # to read excel files
+library(writexl) # to write excel files
+library(ggplot2) # plotting
+library(RColorBrewer)
+library(plotly) # interactive plots
+library(downloadthis) # download figures
+library(tidyverse)
+library(stringr) # string manipulation
+library(DT) # datatables
+library(ragg) # for compatibility
+library(pander) # render stat summary
+library(knitr) # for rendering plots or tables in results='asis'
+library(htmlwidgets) # for rendering plots or tables in results='asis'
+library(dplyr)
+
+
+# Change accordingly
+date_extraction<-"16 Jan 2025"
+date_cut <-"16 Jan 2025"
+plot_captions<-paste0("Generated on ", format(Sys.time(), "%d %b %Y"),"\nData Extraction: ",date_extraction,"\nData Cut-Off: ",date_cut)
+
+```
+
+
+
+```{r preplot, echo=FALSE, include=FALSE}
+# This is sometimes necessary in order to print out plotly graphs within loops using results='asis'
+DT::datatable(matrix(),
+  filter = "top",
+  extensions = c("Buttons", "Responsive"),
+  options = list(
+    pageLength = 20,
+    dom = "tB",
+    buttons = c("copy", "csv", "excel")
+  )
+)
+
+plot_ly(x = rnorm(10), type = "histogram")
+df <- data.frame(x = rnorm(1000))
+ggplotly(ggplot(df, aes(x = x)) +
+  geom_histogram())
+
+DT::datatable(matrix(),
+  filter = "top",
+  extensions = c("Buttons", "Responsive"),
+  options = list(
+    pageLength = 20,
+    dom = "tB",
+    buttons = c("copy", "csv", "excel")
+  )
+)
+
+plot_ly(x = rnorm(10), type = "histogram")
+df <- data.frame(x = rnorm(1000))
+ggplotly(ggplot(df, aes(x = x)) +
+  geom_histogram())
+
+
+customize <- JS("
+  function(doc) {
+    if (!doc) {
+      console.error('pdfmake document object is undefined');
+      return;
+    }
+
+    // Set document properties
+    doc.pageSize = 'A4';
+    doc.pageOrientation = 'landscape';
+    doc.defaultStyle.fontSize = 8;
+    doc.styles.tableHeader.fontSize = 9;
+
+    // Check if table exists before modifying
+    if (doc.content && doc.content[1] && doc.content[1].table) {
+      var table = doc.content[1].table;
+      var colCount = table.body[0].length;
+
+      // Set max page width (subtracting margins)
+      var maxPageWidth = doc.pageSize.width - 40;
+      var colWidth = maxPageWidth / colCount;
+
+      // Ensure column widths are assigned correctly
+      table.widths = Array(colCount).fill(colWidth);
+
+      // Reduce font size if needed
+      doc.content[1].table.body.forEach(function(row) {
+        row.forEach(function(cell) {
+          if (cell.text && cell.text.length > 20) {
+            cell.fontSize = 7; // Reduce font for long text
+          }
+        });
+      });
+
+      // Allow table to split across pages
+      table.dontBreakRows = true;
+    }
+  }
+")
+
+# Apply the function
+
+draw_dt <- function(df) {
+  #automatically create factors for columns having less than 3 uniques values
+  
+
+ df <- df %>%
+   mutate(across(where(~!is.numeric(.)&length(unique(.)) <=6),factor))
+  
+  dt <- DT::datatable(df,
+    extensions = c("Buttons"),
+    options = list(
+      paging = TRUE,
+      scrollX = TRUE,
+      scrollY = TRUE,
+      searching = TRUE,
+      ordering = TRUE,
+      dom = "Blfrtip",
+      buttons = list(
+        "copy", "csv", "excel",
+        list(
+          extend = "pdfHtml5",
+          text = "PDF",
+          title = "DataTable Export",
+          customize = customize,
+          orientation = "landscape",
+          pageSize = "LEGAL",
+          exportOptions = list(
+            columns = ":visible"
+          )
+        )
+      ),
+      pageLength = 10,
+      lengthMenu = list(c(10, 50, 100, -1), 
+                        c("10 rows", "50 rows", "100 rows", "All rows")
+                        ),
+      autoWidth = TRUE,
+   columnDefs = list(
+      list(type = 'natural', targets = "_all"),
+      list(targets = "_all", className = "dt-nowrap")
+    )
+  ),
+    filter = "top",
+    escape = FALSE,
+    caption = htmltools::tags$caption(
+      style = "caption-side: bottom; text-align: right;",
+      em(plot_captions)
+    )
+  )
+  dt
+}
+custom_theme <- theme(
+  # Titles and labels
+  text = element_text(family = "Arial"),
+  plot.title = element_text(family = "Arial", size = 18, face = "bold", hjust = 0),
+  plot.subtitle = element_text(family = "Arial", size = 14, face = "italic", hjust = 0),
+  plot.caption = element_text(family = "Arial", size = 12, face = "italic", hjust = 1),
+
+  # Axis text and titles
+  axis.title.x = element_text(family = "Arial", size = 14, face = "bold"),
+  axis.title.y = element_text(family = "Arial", size = 14, face = "bold"),
+  axis.text.x = element_text(family = "Arial", size = 12, face = "plain"),
+  axis.text.y = element_text(family = "Arial", size = 12, face = "plain"),
+
+  # Legend
+  legend.title = element_text(family = "Arial", size = 14, face = "bold"),
+  legend.text = element_text(family = "Arial", size = 12),
+
+  # Facet labels
+  strip.text = element_text(family = "Arial", size = 14, face = "bold"),
+
+  # Background elements
+  panel.background = element_rect(fill = "white"),
+  panel.grid.major = element_line(color = "grey90"),
+  panel.grid.minor = element_line(color = "grey95"),
+
+  # Axis lines and ticks
+  axis.line = element_line(color = "black"),
+  axis.ticks = element_line(color = "black")
+)
+
+subchunkify <- function(g, fig_height = 9, fig_width = 14) {
+  g_deparsed <- paste0(deparse(
+    function() {
+      g
+    }
+  ), collapse = "")
+  indent <- "  "
+  sub_chunk <- paste0(
+    "\n",
+    indent, "```{r sub_chunk_", floor(runif(1) * 10000), ", fig.height=",
+    fig_height, ", fig.width=", fig_width, ", echo=FALSE}\n",
+    indent, "(",
+    g_deparsed,
+    ")()\n",
+    indent, "```\n"
+  )
+  cat(knitr::knit(text = knitr::knit_expand(text = sub_chunk), quiet = TRUE))
+}
+bor_levels <- c("CR", "PR", "SD", "PD", "NE")
+bor_colours <- c("#3498DB", "#2ECC71", "#F1C40F", "#E74C3C", "#95A5A6")
+bor_levels <- setNames(bor_colours, bor_levels)
+```
+
+# Background
+
+
+# Data Preparation
+## Data cut
+
+```{r,results='asis'}
+
+cat("**Data extraction:**","\n\n- ",date_extraction,"\n\n","**Data Cut-Off:**","\n\n- ",date_cut,"\n\n")
+
+
+```
+\  
+\  
+
+## Data Sources
+Date were copied from:  
+
+
+## Pre-processing  
+
+
+
+# Results
+```{r}
+
+```
+
+# Session
+```{r}
+pander(sessionInfo())
+```

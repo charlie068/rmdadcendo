@@ -1,0 +1,19 @@
+Package: rmdadcendo
+Maintainer: Jean-Charles Isner <charlie068@gmail.com>
+Authors@R: c(person("Jean-Charles", "Isner", email="charlie068@gmail.com",
+    role=c("aut","cre")))
+Version: 0.1.0
+Date: 2025-01-29
+License: GPL (>= 2)
+Encoding: UTF-8
+Title: Custom HTML Output Formats and Templates for ADCT Reports
+Description: Custom HTML formats and templates for ADCT rmarkdown documents, with some extra
+    features such as automatic table of contents, lightboxed figures, and custom ADCT styling.
+Imports: 
+    knitr,
+    rmarkdown,
+    bookdown,
+    htmltools
+URL: https://github.com/charlie068/rmdadcendo
+BugReports: https://github.com/yourusername/rmdadcendo/issues
+RoxygenNote: 7.3.3
