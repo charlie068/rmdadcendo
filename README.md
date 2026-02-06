@@ -2,7 +2,7 @@
 
 Custom HTML output format and template for ADCT R Markdown reports.
 
-This R package provides the `adcendobook` template for creating clean, professional HTML reports for ADCT (ADC Therapeutics) with automatic table of contents, custom styling, and ADCT branding.
+This R package provides the `adcendobook` template for creating clean, professional HTML reports for the company with automatic table of contents, custom styling, and branding.
 
 ## Installation
 
@@ -51,5 +51,6 @@ output:
 Jean-Charles Isner (charlie068@gmail.com)
 
 ## License
+
 
 GPL (>= 2)
